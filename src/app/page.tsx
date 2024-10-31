@@ -1,101 +1,150 @@
+"use client";
 import Image from "next/image";
+import { useCallback, useState } from "react";
+import debounce from "lodash.debounce";
+import axios from "axios";
+import { Label } from "@/components/ui/label";
+import { IMaskInput } from "react-imask";
+import { cn } from "@/lib/utils";
+import viaceplogo from "../../public/viacep.png";
+import InformationData from "./InformationData";
+import { toast } from "sonner";
+
+type Address = {
+  cep: string;
+  logradouro: string;
+  complemento: string;
+  unidade: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+  estado: string;
+  regiao: string;
+  ibge: string;
+  gia: string;
+  ddd: string;
+  siafi: string;
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [codeIsLoading, setCodeIsLoading] = useState<boolean>(false);
+  const [address, setAddress] = useState<Address | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const debouncedSearch = useCallback(
+    debounce(async (code: string) => {
+      if (!code) {
+        setAddress(null);
+        return;
+      }
+      try {
+        setCodeIsLoading(true);
+        const response = await axios.get(
+          `https://viacep.com.br/ws/${code}/json/`
+        );
+        if (response.data?.erro) {
+          toast.warning("CEP não encontrado para os dados informados.", {
+            position: "top-right",
+          });
+          setAddress(null);
+          setCodeIsLoading(false);
+          return;
+        }
+        setAddress(response.data);
+        setCodeIsLoading(false);
+      } catch (error) {
+        toast.warning(
+          "Erro ao buscar o CEP. Verifique se o número do CEP está correto e tente novamente.",
+          { position: "top-right" }
+        );
+        setCodeIsLoading(false);
+      }
+    }, 1000),
+    []
+  );
+
+  return (
+    <div className="flex items-center justify-center min-h-screen font-[family-name:var(--font-geist-sans)]">
+      <main className="flex flex-col items-center bg-white p-4 rounded-md lg:min-w-[500px] gap-4">
+        <div className="rounded-sm bg-teal-900 p-2">
+          <Image
+            src={viaceplogo}
+            alt="viacep image"
+            width={100}
+            height={100}
+            priority
+          />
+        </div>
+        <div className="grid w-full max-w-sm items-center gap-1.5">
+          <Label className="font-medium text-md">Digite o cep:</Label>
+          <IMaskInput
+            className={cn(
+              "w-full py-[8px] border rounded-md px-3 shadow-sm text-sm h-[40px] placeholder-slate-500 border-slate-400"
+            )}
+            placeholder="Exemplo: 00000-000"
+            mask="00000-000"
+            onAccept={(e) => debouncedSearch(e)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-4 w-full justify-center">
+          <Label className="font-medium text-md">Dados:</Label>
+          <div className="grid grid-cols-3 gap-4">
+            <InformationData
+              label={"Logradouro"}
+              text={address?.logradouro}
+              isLoading={codeIsLoading}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+
+            <InformationData
+              label={"Bairro"}
+              text={address?.bairro}
+              isLoading={codeIsLoading}
+            />
+
+            <InformationData
+              label={"Cidade"}
+              text={address?.localidade}
+              isLoading={codeIsLoading}
+            />
+
+            <InformationData
+              label={"Estado"}
+              text={address?.estado}
+              isLoading={codeIsLoading}
+            />
+
+            <InformationData
+              label={"UF"}
+              text={address?.uf}
+              isLoading={codeIsLoading}
+            />
+
+            <InformationData
+              label={"Região"}
+              text={address?.regiao}
+              isLoading={codeIsLoading}
+            />
+
+            <InformationData
+              label={"DDD"}
+              text={address?.ddd}
+              isLoading={codeIsLoading}
+            />
+
+            <InformationData
+              label={"GIA"}
+              text={address?.gia}
+              isLoading={codeIsLoading}
+            />
+
+            <InformationData
+              label={"IBGE"}
+              text={address?.ibge}
+              isLoading={codeIsLoading}
+            />
+          </div>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
