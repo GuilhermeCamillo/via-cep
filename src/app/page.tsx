@@ -1,4 +1,5 @@
 "use client";
+
 import Image from "next/image";
 import { useCallback, useState } from "react";
 import debounce from "lodash.debounce";
@@ -30,6 +31,7 @@ export default function Home() {
   const [codeIsLoading, setCodeIsLoading] = useState<boolean>(false);
   const [address, setAddress] = useState<Address | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(
     debounce(async (code: string) => {
       if (!code) {
@@ -57,6 +59,7 @@ export default function Home() {
           { position: "top-right" }
         );
         setCodeIsLoading(false);
+        console.log(error);
       }
     }, 1000),
     []
